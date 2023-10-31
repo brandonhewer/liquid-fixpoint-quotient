@@ -423,6 +423,15 @@ class Checkable a where
 
   checkSort γ _ = check γ
 
+instance Checkable QPattern where
+  check γ e = void $ checkQPattern f e
+   where f =  (`lookupSEnvWithDistance` γ)
+
+  checkSort γ s e = void $ checkExpr f (ECst (toExpr e) s)
+                    -- ^ Can be done without toExpr
+    where
+      f           =  (`lookupSEnvWithDistance` γ)
+
 instance Checkable Expr where
   check γ e = void $ checkExpr f e
    where f =  (`lookupSEnvWithDistance` γ)
@@ -435,6 +444,22 @@ instance Checkable SortedReft where
   check γ (RR s (Reft (v, ra))) = check γ' ra
    where
      γ' = insertSEnv v s γ
+
+--------------------------------------------------------------------------------
+-- | Checking QPatterns   ------------------------------------------------------
+--------------------------------------------------------------------------------
+toExpr :: QPattern -> Expr
+toExpr (QPLit l)     = ECon l
+toExpr (QPVar v)     = EVar v
+toExpr (QPCons _ c ps) = L.foldl' EApp (EVar c) (toExpr <$> ps)
+
+checkQPattern :: Env -> QPattern -> CheckM Sort
+checkQPattern _ (QPLit (I _))   = return FInt
+checkQPattern _ (QPLit (R _))   = return FReal
+checkQPattern _ (QPLit (L _ s)) = return s
+checkQPattern f (QPVar x)       = checkSym f x
+checkQPattern f p@(QPCons {})   = checkExpr f (toExpr p)
+                                  -- ^ Can be done without toExpr (it's a shorthand for now)
 
 --------------------------------------------------------------------------------
 -- | Checking Expressions ------------------------------------------------------

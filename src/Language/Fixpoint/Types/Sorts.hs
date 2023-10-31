@@ -41,6 +41,7 @@ module Language.Fixpoint.Types.Sorts (
   , mapSort, charSort
   , listFTyCon
   , isListTC
+  , isChar
   , sizeBv
   , isFirstOrder
   , mappendFTC

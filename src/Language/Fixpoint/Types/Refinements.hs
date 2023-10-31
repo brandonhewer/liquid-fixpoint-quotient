@@ -24,6 +24,8 @@ module Language.Fixpoint.Types.Refinements (
   , Constant (..)
   , Bop (..)
   , Brel (..)
+  , QPattern (..)
+  , QUnify (..)
   , Expr (..), Pred
   , GradInfo (..)
   , pattern PTrue, pattern PTop, pattern PFalse, pattern EBot
@@ -142,6 +144,7 @@ instance NFData Constant
 instance NFData SymConst
 instance NFData Brel
 instance NFData Bop
+instance NFData QPattern
 instance NFData Expr
 instance NFData Reft
 instance NFData SortedReft
@@ -157,6 +160,7 @@ instance S.Store Constant
 instance S.Store SymConst
 instance S.Store Brel
 instance S.Store Bop
+instance S.Store QPattern
 instance S.Store Expr
 instance S.Store Reft
 instance S.Store SortedReft
@@ -176,6 +180,7 @@ instance (Hashable k, Eq k, B.Binary k, B.Binary v) => B.Binary (M.HashMap k v) 
 
 instance B.Binary Subst
 instance B.Binary Expr
+instance B.Binary QPattern
 instance B.Binary Reft
 
 
@@ -251,6 +256,7 @@ instance Hashable SymConst
 instance Hashable Constant
 instance Hashable GradInfo
 instance Hashable Subst
+instance Hashable QPattern
 instance Hashable Expr
 instance Hashable Reft
 
@@ -301,6 +307,16 @@ data Brel = Eq | Ne | Gt | Ge | Lt | Le | Ueq | Une
 data Bop  = Plus | Minus | Times | Div | Mod | RTimes | RDiv
             deriving (Eq, Ord, Show, Data, Typeable, Generic)
             -- NOTE: For "Mod" 2nd expr should be a constant or a var *)
+
+data QUnify
+  = UnifiedWith (M.HashMap Symbol Expr) (M.HashMap Symbol Expr)
+  | DidNotUnify
+
+data QPattern
+  = QPLit !Constant
+  | QPVar !Symbol
+  | QPCons !Int !Symbol ![QPattern]
+  deriving (Eq, Show, Ord, Data, Typeable, Generic)
 
 data Expr = ESym !SymConst
           | ECon !Constant
@@ -726,6 +742,13 @@ opPrec Times  = 7
 opPrec RTimes = 7
 opPrec Div    = 7
 opPrec RDiv   = 7
+
+instance PPrint QPattern where
+  pprintPrec _ k (QPLit c) = pprintTidy k c
+  pprintPrec _ k (QPVar v) = pprintTidy k v
+  pprintPrec z k (QPCons _ c ps)
+    = parensIf (z > za) $ pprintPrec za k c <+> pprintPrec (za+1) k ps
+    where za = 8
 
 instance PPrint Expr where
   pprintPrec _ k (ESym c)        = pprintTidy k c
