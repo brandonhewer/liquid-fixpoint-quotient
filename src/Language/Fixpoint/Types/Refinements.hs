@@ -858,6 +858,11 @@ instance Expression SortedReft where
 instance Expression Reft where
   expr (Reft(_, e)) = e
 
+instance Expression QPattern where
+  expr (QPLit c)       = ECon c
+  expr (QPVar v)       = EVar v
+  expr (QPCons _ c ps) = eApps (EVar c) (map expr ps)
+
 instance Expression Expr where
   expr = id
 
